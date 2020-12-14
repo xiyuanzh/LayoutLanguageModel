@@ -1,0 +1,92 @@
+run:
+  tag: torn-phrase
+
+  device: cuda
+  random_seed: 12345
+
+  mode: train
+  mode_path:
+
+  batch_size: 1
+  total_iter: 5000
+  print_per_iter: 1
+  num_workers: 4
+
+  clip_norm: 0.1
+
+  learning_rate: 0.001
+  learning_rate_decay: 0.99
+  learning_rate_decay_step: 10
+
+  log_dir: /data3/zilong/DocStruct-log
+
+linklink:
+  sync: true
+  dynamic_loss_scale: false
+  static_loss_scale: 64
+
+dataset:
+  tag: funsd-torn-phrase
+  path: /data3/zilong/DocStruct-data/funsd-torn-phrase-dataset/
+#  tag: hospital
+#  path: data/hospital-dataset/
+
+  neg_sample: 50
+  max_try: 10
+
+model:
+#  name: LayoutLM
+  name: JointModel
+#  name: Baseline
+
+  fusion: ConcatFusion
+
+  feature:
+    - nlp
+    - position
+#    - vision
+
+  nlp:
+#    bert_weight: /data3/zilong/huggingface/layoutlm/layoutlm-base-uncased/
+    bert_weight: /data3/zilong/huggingface/bert/bert-large-uncased-whole-word-masking
+#    bert_weight: ./data/bert-weight/bert-large-uncased-whole-word-masking/
+#    bert_weight: ./data/bert-weight/chinese_roberta_wwm_large_ext_pytorch/
+#    bert_weight: data/bert-weight/layoutlm-base-uncased
+    bert_freeze: true
+
+  position:
+    feature_dim: 8
+    fc_dim: 128
+
+  vision:
+    name: resnet_rnn
+    init: pad
+    output_dim: 512
+    use_sync_bn: true
+    pre_trained: true
+
+    dropout: 0
+    attention: false
+
+#    name: rcnn
+#    in_channel: 1
+
+loss:
+  func: NegSamplingLoss
+
+eval:
+  key: cv_relation
+
+  func: JointEval
+
+  joint_eval:
+    sub:
+      - Reconstruct
+      - TopKAcc
+    eval_sub: Reconstruct
+
+  top_k_acc:
+    k:
+      - 1
+      - 2
+      - 5
